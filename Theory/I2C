@@ -1,0 +1,57 @@
+#I2C
+##INTRODUCTION
+-I2C is a two-wire serial communication protocol using a serial data line (SDA) and a serial clock line (SCL). The
+protocol supports multiple target devices on a communication bus and can also support multiple controllers that
+send and receive commands and data. Communication is sent in byte packets with a unique address for each
+target device.
+## I2C Physical Layer
+-One of the reasons that I2C is a common protocol is because there are only two lines used for communication.
+The first line is SCL, which is a serial clock primarily controlled by the controller device. SCL is used to
+synchronously clock data in or out of the target device. The second line is SDA, which is the serial data line.
+SDA is used to transmit data to or from target devices. For example, a controller device can send configuration
+data and output codes to a target digital-to-analog converter (DAC), or a target analog-to-digital converter (ADC)
+can send conversion data back to the controller device.
+-An I2C controller device starts and stops communication, which removes the potential problem of bus contention.
+Communication with a target device is sent through a unique address on the bus. This allows for both multiple
+controllers and multiple target devices on the I2C bus.
+##Open-Drain Connection
+-The open-drain connections are used on both SDA and SCL lines and connect to an NMOS transistor. This
+open-drain connection controls the I2C communication line and pulls the line low or releases the line high. The
+open-drain refers to the NMOS bus connection when the NMOS is turned OFF. 
+-To set the voltage level of the SDA or SCL line, the NMOS is set on or off. When the NMOS is on, the device
+pulls current through the resistor to ground. This pulls the open-drain line low. Typically, the transition from
+high to low for I2C is a fast transition as the NMOS pulls down on SDA or SCL. The speed of the transition is
+determined by the NMOS drive strength and any bus capacitance on SDA or SCL.
+-Because of capacitance on the I2C communication line, the SDA and SCL lines discharge with an exponential
+settling RC time constant depending on the size of the pullup resistor and capacitance on the I2C bus. Higher
+capacitance limits the speed of I2C communication, the number of devices, and the physical distance between
+devices on the bus. A smaller pullup resistor has a faster rise time, but requires more power for communication.
+A larger pullup resistor has a slower rise time leading to slower communication, but requires less power.
+##WORKING
+-I2C communication is initiated from the controller device with an I2C START condition. If the bus is open, an I2C
+controller claims the bus for communication by sending an I2C START. To do this, the controller device first pulls
+the SDA low and then pulls the SCL low. This sequence indicates that the controller device is claiming the I2C
+bus for communication, forcing other controller devices on the bus to hold their communication.
+When the controller device has completed communication, the SCL releases high and then the SDA releases
+high. This indicates an I2C STOP condition. This releases the bus to allow other controllers to communicate or
+to allow for the same controller to communicate with another device.
+-At the beginning of the address frame, the controller device initiates a START condition. The controller device
+first pulls SDA low and then pulls SCL low for the START. This allows the controller device to claim the bus
+without contention from other controller devices on the bus. Each I2C target device has an associated I2C
+address. When beginning communications with a particular target device the controller uses the target device
+address to send or receive data in the following I2C frames. The I2C address consists of 7 bits and devices on
+the I2C bus, each have a unique address on the bus.
+-The address frame is followed by one or more data frames. These frames are sent one byte at a time. After each
+data byte is transferred, there is another ACK. If the data byte is a write to the device, then the target device
+pulls the SDA low to ACK the transfer. If the data byte is a read from the device, the controller pulls the SDA low
+to acknowledge the data has been received. The ACK is a useful debugging tool. The absence of this bit can
+indicate that the target peripheral did not receive the proper I2C address for communication, or that the controller
+peripheral did not receive the expected data.
+-After the communication is completed, the controller issues an I2C STOP condition. SCL is first released and
+then SDA is released. The controller uses the STOP to indicate that the communication is completed and the I2C
+bus is released.
+-This is the basic protocol for any I2C communication between the controller device and the target device.
+Communication can consist of more than one byte of data. In some cases where a target device has multiple
+data and configuration registers, a read from a device can begin with a write to the device to indicate which
+register is to be read. The following sections show examples on how to read from and write to different data
+converter devices.
