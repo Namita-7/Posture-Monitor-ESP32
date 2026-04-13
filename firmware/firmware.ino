@@ -1,11 +1,25 @@
 #include <Wire.h>
+#include <SPIFFS.h>
 #define MPU_ADDR 0x68
 
 float pitch = 0.0;
 float roll = 0.0;
 float baseline = 0.0;
 int score = 100;
+unsigned long lastLog = 0;
 
+void logData() {
+    File f = SPIFFS.open("/posture_log.csv", FILE_APPEND);
+    if (!f) {
+        Serial.println("Failed to open file");
+        return;
+    }
+    f.print(millis());      f.print(",");
+    f.print(pitch);         f.print(",");
+    f.print(pitch - baseline); f.print(",");
+    f.println(score);
+    f.close();
+}
 void calibrate() {
     float sum = 0.0;
     for (int i = 0; i < 300; i++) {
@@ -39,6 +53,7 @@ void calibrate() {
     Serial.println(baseline);
 }
 
+
 void setup() {
     Serial.begin(115200);
     Wire.begin(21, 22);
@@ -47,7 +62,13 @@ void setup() {
     Wire.write(0x00);
     Wire.endTransmission(true);
     Serial.println("MPU6050 ready!");
+    if (!SPIFFS.begin(true)) {
+    Serial.println("SPIFFS failed!");
+    return;
+}
+    Serial.println("SPIFFS ready!");
     calibrate();
+    
 }
 
 void loop() {
@@ -99,4 +120,10 @@ void loop() {
     Serial.print("Score: ");
     Serial.println(score);
     delay(10);
+    if (millis() - lastLog > 30000) {
+    logData();
+    lastLog = millis();
+    Serial.println("Logged to SPIFFS");
 }
+}
+
