@@ -1,0 +1,68 @@
+void SensorTask(void*parameters){
+  float dt = 0.01;
+    float alpha = 0.96;
+    for (;;) {
+        Wire.beginTransmission(MPU_ADDR);
+        Wire.write(0x3B);
+        Wire.endTransmission(false);
+        Wire.requestFrom(MPU_ADDR, 6, true);
+        int16_t ax = Wire.read() << 8 | Wire.read();
+        int16_t ay = Wire.read() << 8 | Wire.read();
+        int16_t az = Wire.read() << 8 | Wire.read();
+        float axf = ax / 16384.0;
+        float ayf = ay / 16384.0;
+        float azf = az / 16384.0;
+
+        Wire.beginTransmission(MPU_ADDR);
+        Wire.write(0x43);
+        Wire.endTransmission(false);
+        Wire.requestFrom(MPU_ADDR, 6, true);
+        int16_t gx = Wire.read() << 8 | Wire.read();
+        int16_t gy = Wire.read() << 8 | Wire.read();
+        int16_t gz = Wire.read() << 8 | Wire.read();
+        float gxf = gx / 131.0;
+        float gyf = gy / 131.0;
+
+        float accelPitch = atan2(axf, sqrt(ayf*ayf + azf*azf)) * 180.0 / PI;
+        float accelRoll  = atan2(ayf, sqrt(axf*axf + azf*azf)) * 180.0 / PI;
+        if (xSemaphoreTake(dataMutex, 10) == pdTRUE) {
+            pitch = alpha * (pitch + gxf * dt) + (1.0 - alpha) * accelPitch;
+            roll  = alpha * (roll  + gyf * dt) + (1.0 - alpha) * accelRoll;
+            float deviation = pitch - baseline;
+            if (deviation > 20.0) {
+                score -= 2;
+                if (score < 0) score = 0;
+            } else {
+                score += 1;
+                if (score > 100) score = 100;
+            }
+            xSemaphoreGive(dataMutex);
+        }
+        Serial.print("Pitch: "); Serial.print(pitch);
+        Serial.print(" Roll: "); Serial.print(roll);
+        Serial.print(" Score: "); Serial.println(score);
+
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+void serverTask(void *pvParameters) {
+    for (;;) {
+        server.handleClient();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
+    }
+  void loggerTask(void *pvParameters) {
+    for (;;) {
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        if (xSemaphoreTake(dataMutex, 100) == pdTRUE) {
+            File f = SPIFFS.open("/posture_log.csv", FILE_APPEND);
+            if (f) {
+                f.print(millis());         f.print(",");
+                f.print(pitch);            f.print(",");
+                f.print(pitch - baseline); f.print(",");
+                f.println(score);
+                f.close();
+                Serial.println("Logged to SPIFFS");
+            }
+            xSemaphoreGive(dataMutex);
+        }
+    }
+}
