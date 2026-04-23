@@ -24,7 +24,7 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 - [x] Complementary filter
 - [x] Baseline calibration
 - [x] Posture detection
-- [ ] FreeRTOS multitasking
+- [x] FreeRTOS multitasking
 - [ ] WebServer dashboard
-- [ ] SPIFFS logging
+- [x] SPIFFS logging
 - [ ] Real hardware build
