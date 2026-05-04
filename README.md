@@ -25,6 +25,13 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 - [x] Baseline calibration
 - [x] Posture detection
 - [x] FreeRTOS multitasking
-- [ ] WebServer dashboard
+- [x] WebServer dashboard
 - [x] SPIFFS logging
-- [ ] Real hardware build
+- [ ] Real hardware build(In progress)
+## Stage-2 of the project
+- Battery powered (18650 + TP4056 charger)
+- ESP-IDF migration (no Arduino abstraction)
+- Deep sleep for 10x battery life improvement
+- Dual MPU6050 for spinal curve detection
+- HTTPS for secure dashboard
+- Circular buffer for continuous SPIFFS loggi
