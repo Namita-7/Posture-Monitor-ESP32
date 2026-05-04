@@ -17,8 +17,8 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 ## Tech stack
 - Raw I2C without sensor libraries
 - Complementary filter for angle estimation
-- FreeRTOS task scheduling (soon)
-- WebServer dashboard (soon)
+- FreeRTOS task scheduling 
+- WebServer dashboard 
 ## Current status
 - [x] Raw I2C communication
 - [x] Complementary filter
@@ -34,4 +34,4 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 - Deep sleep for 10x battery life improvement
 - Dual MPU6050 for spinal curve detection
 - HTTPS for secure dashboard
-- Circular buffer for continuous SPIFFS loggi
+- Circular buffer for continuous SPIFFS logging
