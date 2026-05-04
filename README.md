@@ -10,7 +10,7 @@ A complementary filter (α=0.96) fuses both sensors for stable angle estimation.
 On startup the system calibrates a baseline pitch over 300 readings.
 Any deviation beyond 20° from baseline triggers a bad posture alert.
 ## Hardware
-- ESP32 DevKit V1
+- ESP32 Wfi Module 30 pins
 - MPU6050 IMU sensor
 - Coin vibration motor
 
