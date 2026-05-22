@@ -164,6 +164,9 @@ void serverTask(void *pvParameters)
     server.handleClient();
     vTaskDelay(5 / portTICK_PERIOD_MS);
   }
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+}
 }
 
 void loggerTask(void *pvParameters)
