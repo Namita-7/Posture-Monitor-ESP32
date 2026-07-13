@@ -28,6 +28,9 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 - [x] WebServer dashboard
 - [x] SPIFFS logging
 - [ ] Real hardware build(In progress)
+## Demo
+![Posture Monitor Demo](demo/posture_demo.gif)
+[Full video demo](demo/posture_demo_compressed.mp4)
 ## Stage-2 of the project
 - Battery powered (18650 + TP4056 charger)
 - ESP-IDF migration (no Arduino abstraction)
