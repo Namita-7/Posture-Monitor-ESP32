@@ -90,14 +90,16 @@ void calibrate()
     delay(10);
   }
   baseline = sum / 300.0;
-  Serial.print("Baseline set: ");
+  Serial.print("✓ Baseline set: ");
   Serial.println(baseline);
 }
 
 void sensorTask(void *pvParameters)
 {
-  float dt = 0.01;
+  float dt = 0.05;  // 50ms - matches vTaskDelay
   float alpha = 0.96;
+  bool lastBadPosture = false;  // for hysteresis
+  
   for (;;)
   {
     Wire.beginTransmission(MPU_ADDR);
@@ -134,35 +136,50 @@ void sensorTask(void *pvParameters)
       pitch = alpha * (pitch + gxf * dt) + (1.0 - alpha) * accelPitch;
       roll = alpha * (roll + gyf * dt) + (1.0 - alpha) * accelRoll;
       float deviation = abs(pitch - baseline);
-      if (deviation > 20.0)
+      
+      // Hysteresis to prevent flickering
+      if (deviation > 22.0)  // needs CLEARLY bad to trigger
+      {
+        isBadPosture = true;
+      }
+      else if (deviation < 18.0)  // needs CLEARLY good to stop
+      {
+        isBadPosture = false;
+      }
+      else  // between 18-22, keep previous state
+      {
+        isBadPosture = lastBadPosture;
+      }
+      
+      if (isBadPosture)
       {
         score -= 2;
         if (score < 0) score = 0;
-        isBadPosture = true;
       }
       else
       {
         score += 1;
         if (score > 100) score = 100;
-        isBadPosture = false;
       }
+      
       localPitch = pitch;
       localRoll = roll;
       localScore = score;
       badPosture = isBadPosture;
+      lastBadPosture = isBadPosture;
       xSemaphoreGive(dataMutex);
     }
 
     Serial.print("Pitch: ");
-    Serial.print(localPitch);
-    Serial.print(" Roll: ");
-    Serial.print(localRoll);
-    Serial.print(" Score: ");
+    Serial.print(localPitch, 1);
+    Serial.print("° | Deviation: ");
+    Serial.print(abs(localPitch - baseline), 1);
+    Serial.print("° | Score: ");
     Serial.print(localScore);
-    Serial.print(" Posture: ");
-    Serial.println(isBadPosture ? "BAD" : "GOOD");
+    Serial.print(" | Posture: ");
+    Serial.println(isBadPosture ? "❌ BAD" : "✓ GOOD");
 
-    vTaskDelay(500 / portTICK_PERIOD_MS);  // Smooth 500ms delay
+    vTaskDelay(50 / portTICK_PERIOD_MS);  // 50ms - matches dt
   }
 }
 
@@ -180,7 +197,6 @@ void motorTask(void *pvParameters)
         // Bad posture: Turn ON vibrator and RED LED
         digitalWrite(MOTOR_PIN, HIGH);
         digitalWrite(LED_PIN, HIGH);
-        Serial.println("ALERT: Bad posture detected - Motor ON, LED ON");
       }
       else
       {
@@ -190,7 +206,7 @@ void motorTask(void *pvParameters)
       }
     }
     
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
 
@@ -200,9 +216,6 @@ void serverTask(void *pvParameters)
   {
     server.handleClient();
     vTaskDelay(5 / portTICK_PERIOD_MS);
-  }
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
   }
 }
 
@@ -230,7 +243,7 @@ void loggerTask(void *pvParameters)
       f.print(",");
       f.println(localScore);
       f.close();
-      Serial.println("Logged to SPIFFS");
+      Serial.println("📝 Logged to SPIFFS");
     }
   }
 }
@@ -267,7 +280,7 @@ void setup()
     Serial.println("✓ SPIFFS ready!");
   }
   
-  Serial.println("\n--- Calibrating (hold still) ---");
+  Serial.println("\n--- Calibrating (hold STRAIGHT for 3 seconds) ---");
   calibrate();
   
   Serial.println("\n--- Connecting to WiFi ---");
