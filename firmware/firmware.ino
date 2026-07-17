@@ -162,7 +162,7 @@ void sensorTask(void *pvParameters)
     Serial.print(" Posture: ");
     Serial.println(isBadPosture ? "BAD" : "GOOD");
 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(500 / portTICK_PERIOD_MS);  // Smooth 500ms delay
   }
 }
 
@@ -238,47 +238,65 @@ void loggerTask(void *pvParameters)
 void setup()
 {
   Serial.begin(115200);
+  delay(1000);
+  Serial.println("\n\n=== POSTURE MONITOR STARTING ===\n");
   
   // Motor pin setup
   pinMode(MOTOR_PIN, OUTPUT);
   digitalWrite(MOTOR_PIN, LOW);  // Start with motor OFF
-  Serial.println("Motor pin initialized on GPIO 13");
+  Serial.println("✓ Motor pin initialized on GPIO 13");
   
   // LED pin setup
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);  // Start with LED OFF
-  Serial.println("RED LED pin initialized on GPIO 14");
+  Serial.println("✓ RED LED pin initialized on GPIO 14");
   
   Wire.begin(21, 22);
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x6B);
   Wire.write(0x00);
   Wire.endTransmission(true);
-  Serial.println("MPU6050 ready!");
+  Serial.println("✓ MPU6050 ready!");
   
   if (!SPIFFS.begin(true))
   {
-    Serial.println("SPIFFS failed! Continuing without logging...");
+    Serial.println("✗ SPIFFS failed! Continuing without logging...");
   }
   else
   {
-    Serial.println("SPIFFS ready!");
+    Serial.println("✓ SPIFFS ready!");
   }
   
+  Serial.println("\n--- Calibrating (hold still) ---");
   calibrate();
   
+  Serial.println("\n--- Connecting to WiFi ---");
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20)
   {
     delay(500);
     Serial.print(".");
+    attempts++;
   }
   Serial.println("");
-  Serial.print("Connect to: http://");
-  Serial.println(WiFi.localIP());
+  
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("\n✓ WiFi Connected!");
+    Serial.print("📡 Server IP: http://");
+    Serial.println(WiFi.localIP());
+    Serial.println("   (Open this in your browser)\n");
+  }
+  else
+  {
+    Serial.println("\n✗ WiFi Connection Failed\n");
+  }
   
   server.on("/", handleRoot);
   server.begin();
+  
+  Serial.println("=== SYSTEM READY ===\n");
   
   dataMutex = xSemaphoreCreateMutex();
   xTaskCreate(sensorTask, "Sensor", 4096, NULL, 3, NULL);
