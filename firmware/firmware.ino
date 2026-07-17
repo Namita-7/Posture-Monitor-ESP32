@@ -4,6 +4,8 @@
 #include <WebServer.h>
 
 #define MPU_ADDR 0x68
+#define MOTOR_PIN 13
+#define LED_PIN 14
 
 WebServer server(80);
 const char *ssid = "Babu Lakpoti";
@@ -12,6 +14,7 @@ volatile float pitch = 0.0;
 volatile float roll = 0.0;
 float baseline = 0.0;
 volatile int score = 100;
+volatile bool badPosture = false;
 SemaphoreHandle_t dataMutex;
 
 void handleRoot()
@@ -124,6 +127,7 @@ void sensorTask(void *pvParameters)
     float localPitch = 0.0;
     float localRoll = 0.0;
     int localScore = 0;
+    bool isBadPosture = false;
 
     if (xSemaphoreTake(dataMutex, 10) == pdTRUE)
     {
@@ -134,15 +138,18 @@ void sensorTask(void *pvParameters)
       {
         score -= 2;
         if (score < 0) score = 0;
+        isBadPosture = true;
       }
       else
       {
         score += 1;
         if (score > 100) score = 100;
+        isBadPosture = false;
       }
       localPitch = pitch;
       localRoll = roll;
       localScore = score;
+      badPosture = isBadPosture;
       xSemaphoreGive(dataMutex);
     }
 
@@ -151,9 +158,39 @@ void sensorTask(void *pvParameters)
     Serial.print(" Roll: ");
     Serial.print(localRoll);
     Serial.print(" Score: ");
-    Serial.println(localScore);
+    Serial.print(localScore);
+    Serial.print(" Posture: ");
+    Serial.println(isBadPosture ? "BAD" : "GOOD");
 
     vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+
+void motorTask(void *pvParameters)
+{
+  for (;;)
+  {
+    if (xSemaphoreTake(dataMutex, 10) == pdTRUE)
+    {
+      bool isBadPosture = badPosture;
+      xSemaphoreGive(dataMutex);
+      
+      if (isBadPosture)
+      {
+        // Bad posture: Turn ON vibrator and RED LED
+        digitalWrite(MOTOR_PIN, HIGH);
+        digitalWrite(LED_PIN, HIGH);
+        Serial.println("ALERT: Bad posture detected - Motor ON, LED ON");
+      }
+      else
+      {
+        // Good posture: Turn OFF vibrator and RED LED
+        digitalWrite(MOTOR_PIN, LOW);
+        digitalWrite(LED_PIN, LOW);
+      }
+    }
+    
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 
@@ -166,7 +203,7 @@ void serverTask(void *pvParameters)
   }
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();
-}
+  }
 }
 
 void loggerTask(void *pvParameters)
@@ -201,6 +238,17 @@ void loggerTask(void *pvParameters)
 void setup()
 {
   Serial.begin(115200);
+  
+  // Motor pin setup
+  pinMode(MOTOR_PIN, OUTPUT);
+  digitalWrite(MOTOR_PIN, LOW);  // Start with motor OFF
+  Serial.println("Motor pin initialized on GPIO 13");
+  
+  // LED pin setup
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);  // Start with LED OFF
+  Serial.println("RED LED pin initialized on GPIO 14");
+  
   Wire.begin(21, 22);
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x6B);
@@ -234,6 +282,7 @@ void setup()
   
   dataMutex = xSemaphoreCreateMutex();
   xTaskCreate(sensorTask, "Sensor", 4096, NULL, 3, NULL);
+  xTaskCreate(motorTask, "Motor", 2048, NULL, 2, NULL);
   xTaskCreate(serverTask, "Server", 4096, NULL, 2, NULL);
   xTaskCreate(loggerTask, "Logger", 2048, NULL, 1, NULL);
 }
