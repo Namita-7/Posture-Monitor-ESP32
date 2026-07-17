@@ -27,7 +27,7 @@ Any deviation beyond 20° from baseline triggers a bad posture alert.
 - [x] FreeRTOS multitasking
 - [x] WebServer dashboard
 - [x] SPIFFS logging
-- [ ] Real hardware build(In progress)
+- [X] Real hardware build(In progress)
 ## Demo
 ![Posture Monitor Demo](demo/posture_demo.gif)
 [Full video demo](demo/posture_demo_compressed.mp4)
