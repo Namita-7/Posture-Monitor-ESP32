@@ -8,8 +8,8 @@
 #define LED_PIN 14
 
 WebServer server(80);
-const char *ssid = "Babu Lakpoti";
-const char *password = "9448570120";
+const char *ssid = "YOUR_SSID";
+const char *password = "YOUR_PASSWORD";
 volatile float pitch = 0.0;
 volatile float roll = 0.0;
 float baseline = 0.0;
