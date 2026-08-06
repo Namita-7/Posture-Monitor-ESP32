@@ -24,6 +24,7 @@ void handleRoot()
     float localPitch = pitch;
     float localBaseline = baseline;
     int localScore = score;
+    bool localBadPosture = badPosture;
     xSemaphoreGive(dataMutex);
 
     String html = "<!DOCTYPE html><html><head>";
@@ -36,7 +37,7 @@ void handleRoot()
     html += "<p>Pitch: " + String(localPitch, 1) + "&deg;</p>";
     html += "<p>Deviation: " + String(localPitch - localBaseline, 1) + "&deg;</p>";
     
-    if (abs(localPitch - localBaseline) > 20.0)
+    if (localBadPosture)
     {
       html += "<p class='bad'>BAD POSTURE</p>";
     }
